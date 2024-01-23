@@ -150,8 +150,8 @@ impl ProjectState {
                 .split('\n')
                 .filter_map(|line| {
                     let mut iter = line.split(' ');
-                    let Some(addr) = iter.next() else { return None; };
-                    let Some(rflags) = iter.next() else { return None; };
+                    let addr = iter.next()?;
+                    let rflags = iter.next()?;
 
                     let addr = u64::from_str_radix(addr.trim_start_matches("0x"), 16);
                     let rflags = u64::from_str_radix(rflags.trim_start_matches("0x"), 16);
@@ -688,7 +688,7 @@ pub fn get_project_state(dir: &Path, cmd: Option<&SubCommand>) -> Result<Project
             let mut res = String::new();
 
             // For each coverage breakpoint, write its source line
-            'next_addr: for addr in covbps.iter() {
+            'next_addr: for addr in covbps {
                 for ctx in &contexts {
                     if let Some(loc) = ctx.find_location(addr.0)? {
                         let symbol = format!(
@@ -717,8 +717,12 @@ pub fn get_project_state(dir: &Path, cmd: Option<&SubCommand>) -> Result<Project
         let mut unwinders = StackUnwinders::default();
 
         for bin_file in &binaries {
-            let Some(bin_name) = bin_file.file_name() else { continue };
-            let Some(bin_name) = bin_name.to_str() else { continue };
+            let Some(bin_name) = bin_file.file_name() else {
+                continue;
+            };
+            let Some(bin_name) = bin_name.to_str() else {
+                continue;
+            };
             let bin_name = bin_name.replace(".bin", "");
 
             // Get the module range and rebase the stack unwinder if we have known module range

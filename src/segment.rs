@@ -83,7 +83,7 @@ pub struct Descriptor {
     system: bool,
 
     /// Specifies the privilege level of the segment (DPL)
-    descriptor_privilege: Privilege,
+    privilege: Privilege,
 
     /// Indicates whether the segment is present in memory or not (P)
     present: bool,
@@ -134,7 +134,7 @@ impl Descriptor {
             selector: self.selector,
             type_: type_,
             present: self.present.into(),
-            dpl: self.descriptor_privilege as u8,
+            dpl: self.privilege as u8,
             db: 0,
             s: self.system.into(),
             l: matches!(self.type_, Some(DescriptorType::Code)).into(),
@@ -177,7 +177,7 @@ impl Descriptor {
             type_: Some(type_),
             access,
             system: seg.s == 1,
-            descriptor_privilege: desc_priv,
+            privilege: desc_priv,
             present: seg.present == 1,
             granularity: seg.g == 1,
         }

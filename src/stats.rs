@@ -535,8 +535,8 @@ impl GlobalStats {
         line.push_str("| ");
 
         for i in 0..std::mem::variant_count::<FuzzVmExit>() {
-            let name = FuzzVmExit::name(i as usize);
-            let val = self.vmexits[i as usize];
+            let name = FuzzVmExit::name(i);
+            let val = self.vmexits[i];
 
             // Print the percentage of time this marker was executed
             let segment = format!("{name:>30}: {val:18}");
@@ -863,7 +863,7 @@ pub fn worker<FUZZER: Fuzzer>(
                 alive = 0;
 
                 // Calculate the current statistics
-                for (_core_id, core_stats) in stats.iter().enumerate() {
+                for core_stats in stats.iter() {
                     let mut stats = core_stats.lock().unwrap();
 
                     // Add this core's corpus to the total corpus
@@ -894,7 +894,7 @@ pub fn worker<FUZZER: Fuzzer>(
             break 'finish;
         }
 
-        let (_, _accum_elapsed) = time!(
+        let ((), _accum_elapsed) = time!(
             // Calculate the current statistics
             for (core_id, core_stats) in stats.iter().enumerate() {
                 // Attempt to get this core's stats. If it fails, continue the next core
@@ -1264,7 +1264,7 @@ pub fn worker<FUZZER: Fuzzer>(
         // and give each core a new corpus to fuzz with
         if merge_coverage {
             // First, gather all the corpi from all cores
-            for (_core_id, core_stats) in stats.iter().enumerate() {
+            stats.iter().enumerate().for_each(|(_core_id, core_stats)| {
                 let mut curr_stats = core_stats.lock().unwrap();
 
                 if let Some(corpus) = curr_stats.old_corpus.take() {
@@ -1274,7 +1274,7 @@ pub fn worker<FUZZER: Fuzzer>(
                         total_corpus.insert(input);
                     }
                 }
-            }
+            });
 
             for (core_id, core_stats) in stats.iter().enumerate() {
                 // Attempt to lock this core's stats for updating. If the lock is taken,
@@ -1490,7 +1490,7 @@ pub fn worker<FUZZER: Fuzzer>(
         */
 
         // Check for a new file dropped into `current_corpus`
-        let (_, _newinput_elapsed) = time!(for entry in corpus_dir.read_dir()? {
+        let ((), _newinput_elapsed) = time!(for entry in corpus_dir.read_dir()? {
             // Limit how long we monitor the `current_corpus` for this iteration to not
             // lock the TUI for too long
             if start.elapsed() >= PRINT_SLEEP {
@@ -1498,12 +1498,16 @@ pub fn worker<FUZZER: Fuzzer>(
             }
 
             // Get the entry
-            let Ok(entry) = entry else { continue; };
+            let Ok(entry) = entry else {
+                continue;
+            };
 
             let path = entry.path();
 
             // Get the filename from the entry
-            let Some(filename) = path.file_name() else { continue; };
+            let Some(filename) = path.file_name() else {
+                continue;
+            };
 
             // Only new filenames that we haven't seen before. Avoids having to
             // read every input file from disk just to check if we know about it.

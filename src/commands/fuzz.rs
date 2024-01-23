@@ -73,7 +73,7 @@ pub(crate) fn run<FUZZER: Fuzzer + 'static>(
     let mut cores = args.cores.unwrap_or(1);
     if cores < 0 {
         if let Some(core_ids) = core_affinity::get_core_ids() {
-            cores += core_ids.len() as i64;
+            cores += i64::try_from(core_ids.len()).unwrap_or(0);
         } else {
             log::warn!("Unable to get core ids. Defaulting to 1 core");
             cores = 1;
@@ -922,10 +922,7 @@ fn start_core<FUZZER: Fuzzer>(
 
                 instrs.push(format!(
                     "INSTRUCTION {:07} {:#018x} {:#010x} | {:60}\n    {instr}",
-                    i,
-                    rip,
-                    u64::try_from(cr3.0).unwrap(),
-                    symbol
+                    i, rip, cr3.0, symbol
                 ));
 
                 i += 1;

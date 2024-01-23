@@ -2,8 +2,7 @@
 
 use addr2line::gimli;
 use addr2line::gimli::{
-    BaseAddresses, CfaRule, EhFrame, EhFrameHdr, EndianSlice, LittleEndian, RegisterRule,
-    UnwindSection, X86_64,
+    BaseAddresses, CfaRule, EhFrame, EhFrameHdr, EndianSlice, LittleEndian, RegisterRule, X86_64,
 };
 use addr2line::object::{Object, ObjectSection};
 use thiserror::Error;
@@ -314,7 +313,9 @@ impl StackUnwinders {
                 let mut iter = backtrace.iter().skip(backtrace.len() - MAX_SAME_RECURSION);
 
                 // Get the first element from the iterator to check against
-                let Some(first) = iter.next() else { continue; };
+                let Some(first) = iter.next() else {
+                    continue;
+                };
 
                 if iter.all(|addr| addr == first) {
                     // Found a backtrace with too many recursions, end the backtrace here
@@ -358,8 +359,9 @@ pub fn get_instr_containing<FUZZER: Fuzzer>(
         // Get the instruction for the current address
         let Ok(instr) = fuzzvm
             .memory
-            .get_instruction_at(VirtAddr(curr_addr), fuzzvm.cr3()) else {
-                continue;
+            .get_instruction_at(VirtAddr(curr_addr), fuzzvm.cr3())
+        else {
+            continue;
         };
 
         let ending_addr = curr_addr + instr.len() as u64;
@@ -403,15 +405,15 @@ impl StackUnwinder {
 
         // If we don't have an .eh_frame_hdr, return None
         let Some(ref eh_frame_hdr) = object.section_by_name(".eh_frame_hdr") else {
-                log::info!("{binary:?} has no .eh_frame_hdr");
-                return Ok(None);
-            };
+            log::info!("{binary:?} has no .eh_frame_hdr");
+            return Ok(None);
+        };
 
         // If we don't have an .eh_frame, return None
         let Some(ref eh_frame) = object.section_by_name(".eh_frame") else {
-                log::info!("{binary:?} has no .eh_frame");
-                return Ok(None);
-            };
+            log::info!("{binary:?} has no .eh_frame");
+            return Ok(None);
+        };
 
         // Set the address of the sections in the base addresses
         base_addresses = base_addresses.set_eh_frame_hdr(eh_frame_hdr.address() + base_address);
@@ -465,7 +467,7 @@ impl StackUnwinder {
                 &self.base_addresses,
                 &mut unwind_context,
                 addr,
-                |section, bases, offset| section.cie_from_offset(bases, offset),
+                addr2line::gimli::UnwindSection::cie_from_offset,
             ) {
             Ok(unwind_info) => {
                 /*

@@ -339,7 +339,7 @@ pub(crate) fn start_core<FUZZER: Fuzzer>(
         lcov_res.push_str("end_of_record\n");
     }
     #[allow(clippy::needless_borrow)]
-    std::fs::write(&coverage_lcov, &lcov_res)?;
+    std::fs::write(coverage_lcov, &lcov_res)?;
 
     log::info!("Coverage gathering took {:4.2?}", start.elapsed());
 

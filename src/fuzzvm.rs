@@ -4,6 +4,7 @@
 #![allow(clippy::enum_glob_use)]
 #![allow(clippy::missing_errors_doc)]
 #![allow(clippy::missing_panics_doc)]
+use core::fmt::Write;
 
 use iced_x86::Code::*;
 
@@ -2908,10 +2909,13 @@ impl<'a, FUZZER: Fuzzer> FuzzVm<'a, FUZZER> {
 
             let instr_bytes: [u8; 0x10] = self.read(curr_addr, cr3)?;
 
-            let instr_bytes = instr_bytes[..instr.len()]
-                .iter()
-                .map(|x| format!("{x:02x}"))
-                .collect::<String>();
+            let instr_bytes =
+                instr_bytes[..instr.len()]
+                    .iter()
+                    .fold(String::new(), |mut output, x| {
+                        let _ = write!(output, "{x:02x} ");
+                        output
+                    });
 
             println!("{:#018x}: {instr_bytes:24} | {output_str}", curr_addr.0);
 
@@ -3005,7 +3009,7 @@ impl<'a, FUZZER: Fuzzer> FuzzVm<'a, FUZZER> {
 
         if let Some(ref reset_bps) = reset_breakpoints {
             // Set each breakpoint from the fuzzer
-            for ((bp_addr, cr3), _symbol_type) in reset_bps.iter() {
+            for (bp_addr, cr3) in reset_bps.keys() {
                 // Ignore wildcard CR3s used for kernel symbol resolution with unknown
                 // CR3s. When applying kernel symbol breakpoints, some symbols (like
                 // do_idle) can get called with a CR3 not known at runtime. We add those

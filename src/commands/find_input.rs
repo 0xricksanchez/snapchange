@@ -222,7 +222,7 @@ pub(crate) fn run<FUZZER: Fuzzer>(
     let mut cores = args.cores.unwrap_or(1);
     if cores < 0 {
         if let Some(core_ids) = core_affinity::get_core_ids() {
-            cores += core_ids.len() as i64;
+            cores += i64::try_from(core_ids.len()).unwrap_or(0);
         } else {
             log::warn!("Unable to get core ids. Defaulting to 1 core");
             cores = 1;
@@ -300,7 +300,9 @@ pub(crate) fn run<FUZZER: Fuzzer>(
 
     for t in threads {
         let res = t.join();
-        let Ok(Ok(files)) = res else { continue; };
+        let Ok(Ok(files)) = res else {
+            continue;
+        };
 
         for file in files {
             found.insert(file);

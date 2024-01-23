@@ -200,11 +200,7 @@ fn start_core<FUZZER: Fuzzer>(
             // Write the current line to the trace
             result.push_str(&format!(
                 "INSTRUCTION {:03} {:#018x} {:#010x} | {:60} \n    {}\n",
-                index,
-                rip,
-                u64::try_from(cr3.0).unwrap(),
-                symbol,
-                instr,
+                index, rip, cr3.0, symbol, instr,
             ));
 
             let mut source_line = None;

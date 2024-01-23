@@ -308,7 +308,7 @@ impl Memory {
 
     /// Set the internal used physical pages using the list of [`Cr3`]s given
     pub fn identify_used_phys_pages(&mut self, cr3s: &[Cr3]) {
-        for &cr3 in cr3s.iter() {
+        for &cr3 in cr3s {
             let mut new_addrs = self.used_phys_pages(cr3);
             self.used_phys_pages.append(&mut new_addrs);
         }
@@ -391,43 +391,46 @@ impl Memory {
         //             [Lvl1index][Lvl2index][Lvl3index][Lvl4index]
         let mut table_indexes = virt_addr.table_indexes();
 
-        for (_level, index) in table_indexes.iter_mut().enumerate() {
-            // Get the page table entry at the given index
-            let entry = &mut curr_table[*index];
+        table_indexes
+            .iter_mut()
+            .enumerate()
+            .for_each(|(_level, index)| {
+                // Get the page table entry at the given index
+                let entry = &mut curr_table[*index];
 
-            // Get the flags for this entry
-            let flags = entry.flags();
+                // Get the flags for this entry
+                let flags = entry.flags();
 
-            // Update the permissions for the page table entry
-            perms.set_writable(flags.writable());
-            perms.set_executable(flags.executable());
+                // Update the permissions for the page table entry
+                perms.set_writable(flags.writable());
+                perms.set_executable(flags.executable());
 
-            // Get the physical address of the next table or allocate a new page if
-            // needed
-            if !flags.present() {
-                // Allocate a physical page from the found "unused" pages
-                let new_page = self.allocate_phys_page();
+                // Get the physical address of the next table or allocate a new page if
+                // needed
+                if !flags.present() {
+                    // Allocate a physical page from the found "unused" pages
+                    let new_page = self.allocate_phys_page();
 
-                // Set the entry to the allocated phys page
-                entry.set_address(new_page);
+                    // Set the entry to the allocated phys page
+                    entry.set_address(new_page);
 
-                // Set this entry as now present and writable
-                entry.set_present();
-                entry.set_writable();
+                    // Set this entry as now present and writable
+                    entry.set_present();
+                    entry.set_writable();
 
-                let new_page = entry.address().offset(self.memory_backing).0;
+                    let new_page = entry.address().offset(self.memory_backing).0;
 
-                // Clear the allocated page
-                unsafe {
-                    *(new_page as *mut [u8; 0x1000]) = [0; 0x1000];
+                    // Clear the allocated page
+                    unsafe {
+                        *(new_page as *mut [u8; 0x1000]) = [0; 0x1000];
+                    }
                 }
-            }
 
-            let next_table_address = entry.address().offset(self.memory_backing);
+                let next_table_address = entry.address().offset(self.memory_backing);
 
-            // Update the next page table using the address from the current entry
-            curr_table = unsafe { PageTable::from_phys_addr(next_table_address) };
-        }
+                // Update the next page table using the address from the current entry
+                curr_table = unsafe { PageTable::from_phys_addr(next_table_address) };
+            });
     }
 
     /// Get all of the physical pages used by the given [`Cr3`]
